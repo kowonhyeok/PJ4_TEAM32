@@ -10,6 +10,8 @@
     <!-- Declare permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -21,7 +23,7 @@
         android:theme="@style/Theme.PJ4TEST"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".SubActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,6 +35,11 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+    <activity
+        android:name=".MainActivity"
+        />
+    <activity android:name=".FinalActivity" />
     </application>
+
 
 </manifest>

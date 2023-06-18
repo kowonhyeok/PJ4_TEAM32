@@ -1,11 +1,14 @@
 package com.example.pj4test.fragment
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import com.example.pj4test.MainActivity
 import com.example.pj4test.ProjectConfiguration
 import com.example.pj4test.audioInference.SnapClassifier
 import com.example.pj4test.databinding.FragmentAudioBinding
@@ -23,6 +26,8 @@ class AudioFragment: Fragment(), SnapClassifier.DetectorListener {
 
     // views
     lateinit var snapView: TextView
+
+    private var handler : Handler? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -42,6 +47,7 @@ class AudioFragment: Fragment(), SnapClassifier.DetectorListener {
         snapClassifier = SnapClassifier()
         snapClassifier.initialize(requireContext())
         snapClassifier.setDetectorListener(this)
+        handler = Handler(Looper.getMainLooper())
     }
 
     override fun onPause() {
@@ -57,13 +63,18 @@ class AudioFragment: Fragment(), SnapClassifier.DetectorListener {
     override fun onResults(score: Float) {
         activity?.runOnUiThread {
             if (score > SnapClassifier.THRESHOLD) {
-                snapView.text = "SNAP"
+                snapView.text = "대화가 감지되었습니다."
                 snapView.setBackgroundColor(ProjectConfiguration.activeBackgroundColor)
                 snapView.setTextColor(ProjectConfiguration.activeTextColor)
+                handler?.postDelayed( {
+                    (activity as MainActivity).sendSms()
+                }, 2000)
+
             } else {
-                snapView.text = "NO SNAP"
+                snapView.text = "대화하시면 안됩니다."
                 snapView.setBackgroundColor(ProjectConfiguration.idleBackgroundColor)
                 snapView.setTextColor(ProjectConfiguration.idleTextColor)
+                handler?.removeCallbacksAndMessages(null)
             }
         }
     }

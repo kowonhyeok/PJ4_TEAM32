@@ -16,32 +16,36 @@
 package com.example.pj4test.fragment
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.camera.core.AspectRatio
-import androidx.camera.core.Camera
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.*
 import androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.pj4test.ProjectConfiguration
-import java.util.LinkedList
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import com.example.pj4test.cameraInference.PersonClassifier
 import com.example.pj4test.databinding.FragmentCameraBinding
 import org.tensorflow.lite.task.vision.detector.Detection
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import android.telephony.SmsManager;
+import android.os.Looper;
+import android.os.SystemClock.sleep
+import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.content.ContextCompat.getSystemService
+import com.example.pj4test.MainActivity
+import java.util.concurrent.TimeUnit
 
 class CameraFragment : Fragment(), PersonClassifier.DetectorListener {
     private val TAG = "CameraFragment"
@@ -50,15 +54,16 @@ class CameraFragment : Fragment(), PersonClassifier.DetectorListener {
 
     private val fragmentCameraBinding
         get() = _fragmentCameraBinding!!
-    
+
     private lateinit var personView: TextView
-    
+    private lateinit var warningView: TextView
+
     private lateinit var personClassifier: PersonClassifier
     private lateinit var bitmapBuffer: Bitmap
     private var preview: Preview? = null
     private var imageAnalyzer: ImageAnalysis? = null
     private var camera: Camera? = null
-
+    private var handler : Handler? = null
     /** Blocking camera operations are performed using this executor */
     private lateinit var cameraExecutor: ExecutorService
 
@@ -98,6 +103,7 @@ class CameraFragment : Fragment(), PersonClassifier.DetectorListener {
         }
 
         personView = fragmentCameraBinding.PersonView
+        handler = Handler(Looper.getMainLooper())
     }
 
     // Initialize CameraX, and prepare to bind the camera use cases
@@ -194,24 +200,31 @@ class CameraFragment : Fragment(), PersonClassifier.DetectorListener {
     ) {
         activity?.runOnUiThread {
             // Pass necessary information to OverlayView for drawing on the canvas
-            fragmentCameraBinding.overlay.setResults(
+            /*fragmentCameraBinding.overlay.setResults(
                 results ?: LinkedList<Detection>(),
                 imageHeight,
                 imageWidth
-            )
-            
+            )*/
+
             // find at least one bounding box of the person
-            val isPersonDetected: Boolean = results!!.find { it.categories[0].label == "person" } != null
-            
+            val isPersonDetected: Boolean =
+                results!!.find { it.categories[0].label == "person" } != null
+
             // change UI according to the result
             if (isPersonDetected) {
-                personView.text = "PERSON"
-                personView.setBackgroundColor(ProjectConfiguration.activeBackgroundColor)
-                personView.setTextColor(ProjectConfiguration.activeTextColor)
-            } else {
-                personView.text = "NO PERSON"
+                personView.text = "자리를 비우시면 안됩니다."
                 personView.setBackgroundColor(ProjectConfiguration.idleBackgroundColor)
                 personView.setTextColor(ProjectConfiguration.idleTextColor)
+                handler?.removeCallbacksAndMessages(null)
+
+            } else {
+                personView.text = "자리비움이 감지되었습니다"
+                personView.setBackgroundColor(ProjectConfiguration.activeBackgroundColor)
+                personView.setTextColor(ProjectConfiguration.activeTextColor)
+
+                handler?.postDelayed( {
+                    (activity as MainActivity).sendSms()
+                }, 10000)
             }
 
             // Force a redraw
@@ -224,4 +237,21 @@ class CameraFragment : Fragment(), PersonClassifier.DetectorListener {
             Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
         }
     }
+/*
+    private fun startTimer() {
+        handler = HandlerThread("timer")
+        Handler(handler.looper).post {
+            val smsManager: SmsManager = context.getSystemService(SmsManager::class.java)
+            //val smsManager: SmsManager = SmsManager.getDefault()
+            val phoneNo: String = "01034433685"
+            val sms: String = "please~"
+            sleep(5000)
+            smsManager.sendTextMessage(phoneNo, null, sms, null, null)
+                              }
+        }
+    }
+    private fun resetTimer() {
+        // 타이머 리셋
+        handler?.remove.Messages(0)
+    }*/
 }
